@@ -1,0 +1,53 @@
+import asyncio
+import logging
+from telegram import Update
+from telegram.ext import ApplicationBuilder, ChatJoinRequestHandler, ContextTypes
+
+# ലോഗ്സ് സെറ്റപ്പ്
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+# ബോട്ട് ടോക്കൺ
+BOT_TOKEN = "8842459355:AAEJT2zbVvmhNUCgmTQtXc2Ao7B_ChZYDMQ"
+
+# നിങ്ങളുടെ ഗ്രൂപ്പ് ഐഡി (നിർബന്ധം: ഇത് -100 എന്ന നമ്പറിൽ തുടങ്ങുന്ന ഐഡി ആയിരിക്കണം)
+GROUP_CHAT_ID = "ഇവിടെ_നിങ്ങളുടെ_ഗ്രൂപ്പ്_ഐഡി_നൽകുക"
+
+# നിങ്ങൾ അയക്കാൻ ഉദ്ദേശിക്കുന്ന ലിങ്ക്
+LINK_TO_SEND = "https://t.me/+lZgpL5ALAxtlNTM1"
+
+# ഓട്ടോ അപ്രൂവൽ ഫങ്ക്ഷൻ (പുതിയ മെമ്പർമാരെ തനിയെ അപ്രൂവ് ചെയ്യാൻ)
+async def approve_join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.chat_join_request.user_id
+    chat_id = update.chat_join_request.chat.id
+    await context.bot.approve_chat_join_request(chat_id=chat_id, user_id=user_id)
+    logging.info(f"പുതിയ മെമ്പറെ അപ്രൂവ് ചെയ്തു: {user_id}")
+
+# മെസ്സേജ് റിപ്പീറ്റർ ഫങ്ക്ഷൻ
+async def repeater_task(context: ContextTypes.DEFAULT_TYPE):
+    bot = context.bot
+    # 'job.data' എന്നതിൽ നമ്മൾ കഴിഞ്ഞ മെസ്സേജിന്റെ ഐഡി സൂക്ഷിക്കും
+    job = context.job
+    
+    # പഴയ മെസ്സേജ് ഉണ്ടെങ്കിൽ ഡിലീറ്റ് ചെയ്യുന്നു
+    if job.data:
+        try:
+            await bot.delete_message(chat_id=GROUP_CHAT_ID, message_id=job.data)
+        except Exception as e:
+            logging.error(f"പഴയ മെസ്സേജ് ഡിലീറ്റ് ചെയ്യാൻ പറ്റില്ല: {e}")
+
+    # പുതിയ മെസ്സേജ് അയക്കുന്നു
+    msg = await bot.send_message(chat_id=GROUP_CHAT_ID, text=LINK_TO_SEND)
+    job.data = msg.message_id # പുതിയ ഐഡി സേവ് ചെയ്യുന്നു
+
+if __name__ == '__main__':
+    application = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    # ജോയിൻ റിക്വസ്റ്റ് അപ്രൂവ് ചെയ്യാനുള്ള ഹാൻഡ്‌ലർ
+    application.add_handler(ChatJoinRequestHandler(approve_join_request))
+
+    # 60 സെക്കൻഡ് ഇടവിട്ട് മെസ്സേജ് അയക്കാനുള്ള ജോബ്
+    job_queue = application.job_queue
+    job_queue.run_repeating(repeater_task, interval=60, first=1, data=None)
+
+    print("ബോട്ട് പ്രവർത്തിച്ചു തുടങ്ങി...")
+    application.run_polling()
