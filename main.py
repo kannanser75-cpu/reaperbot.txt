@@ -5,7 +5,7 @@ import http.client
 import random
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import threading
-from telegram import Update, ReactionTypeEmoji
+from telegram import Update, ReactionTypeEmoji, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, ChatJoinRequestHandler, CommandHandler, MessageHandler, filters, ContextTypes
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -40,12 +40,10 @@ async def self_ping_task():
         except: pass
         await asyncio.sleep(300)
 
-# --- തിരുത്തിയ ഓട്ടോ റിയാക്ഷൻ ഫങ്ക്ഷൻ ---
 async def auto_react(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
         try:
             selected_emoji = random.choice(["💋", "🍓"])
-            # പുതിയ ലൈബ്രറി വേർഷന് അനുയോജ്യമായ രീതിയിൽ മാറ്റിയത്:
             await context.bot.set_message_reaction(
                 chat_id=update.effective_chat.id,
                 message_id=update.message.id,
@@ -62,6 +60,7 @@ async def approve_join_request(update: Update, context: ContextTypes.DEFAULT_TYP
         await context.bot.approve_chat_join_request(chat_id=update.chat_join_request.chat.id, user_id=update.chat_join_request.user_id)
     except: pass
 
+# --- ലിങ്കിനൊപ്പം ഷെയർ ബട്ടൺ അയക്കുന്ന ടാസ്ക് ---
 async def repeater_task(context: ContextTypes.DEFAULT_TYPE):
     bot = context.bot
     job = context.job
@@ -69,7 +68,19 @@ async def repeater_task(context: ContextTypes.DEFAULT_TYPE):
         try: await bot.delete_message(chat_id=GROUP_CHAT_ID, message_id=job.data)
         except: pass
     try:
-        msg = await bot.send_message(chat_id=GROUP_CHAT_ID, text=LINK_TO_SEND)
+        # ടെലിഗ്രാം ഷെയർ ലിങ്ക് സെറ്റപ്പ്
+        share_url = f"https://t.me/share/url?url={LINK_TO_SEND}&text=ഗ്രൂപ്പിൽ_ജോയിൻ_ചെയ്യാനുള്ള_ലിങ്ക്!"
+        
+        # ഇൻലൈൻ ബട്ടൺ നിർമ്മിക്കുന്നു
+        keyboard = [[InlineKeyboardButton("Share / ഷെയർ ചെയ്യൂ 🚀", url=share_url)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        # ബട്ടണോട് കൂടി മെസ്സേജ് അയക്കുന്നു
+        msg = await bot.send_message(
+            chat_id=GROUP_CHAT_ID, 
+            text=LINK_TO_SEND,
+            reply_markup=reply_markup
+        )
         job.data = msg.message_id
     except Exception as e:
         logging.error(f"ലിങ്ക് അയക്കാൻ പറ്റിയില്ല: {e}")
