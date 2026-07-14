@@ -5,14 +5,14 @@ import http.client
 import random
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import threading
-from telegram import Update
+from telegram import Update, ReactionTypeEmoji
 from telegram.ext import ApplicationBuilder, ChatJoinRequestHandler, CommandHandler, MessageHandler, filters, ContextTypes
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-# --- നിങ്ങളുടെ വിവരങ്ങൾ ഇവിടെ സെറ്റ് ചെയ്തിട്ടുണ്ട് ---
+# --- നിങ്ങളുടെ വിവരങ്ങൾ ---
 BOT_TOKEN = "8842459355:AAEJT2zbVvmhNUCgmTQtXc2Ao7B_ChZYDMQ"
-GROUP_CHAT_ID = -1003872572810  # നിങ്ങളുടെ കറക്റ്റ് ഗ്രൂപ്പ് ഐഡി ചേർത്തു
+GROUP_CHAT_ID = -1003872572810  
 LINK_TO_SEND = "https://t.me/+lZgpL5ALAxtlNTM1"
 # --------------------------------------------------
 
@@ -40,14 +40,16 @@ async def self_ping_task():
         except: pass
         await asyncio.sleep(300)
 
+# --- തിരുത്തിയ ഓട്ടോ റിയാക്ഷൻ ഫങ്ക്ഷൻ ---
 async def auto_react(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
         try:
             selected_emoji = random.choice(["💋", "🍓"])
+            # പുതിയ ലൈബ്രറി വേർഷന് അനുയോജ്യമായ രീതിയിൽ മാറ്റിയത്:
             await context.bot.set_message_reaction(
                 chat_id=update.effective_chat.id,
                 message_id=update.message.id,
-                reaction=[{"type": "emoji", "emoji": selected_emoji}]
+                reaction=ReactionTypeEmoji(emoji=selected_emoji)
             )
         except Exception as e:
             logging.error(f"റിയാക്ഷൻ ഇടാൻ കഴിഞ്ഞില്ല: {e}")
